@@ -85,8 +85,6 @@ public class ReportGenerator {
                     .charAt(0);
 
     private static final String INVALID_CLASS_FMT = "Class name \"%s\" is not valid.";
-    private static final String INVALID_EXPORT_FMT = "Data exporter \"%s\" is unable to export data.";
-    private static final String NOT_SUPPORTED_CONVERSION_FMT = "Not supported conversion to \"%s\"";
 
     public static final String NORMALIZER_CONSUMER_NAME = "normalizer";
     public static final String BEGIN_DATE_CONSUMER_NAME = "beginDate";
@@ -175,6 +173,7 @@ public class ReportGenerator {
      * @param propertyKey the property key
      * @return the name of the property setter
      */
+    @SuppressWarnings("JdkObsolete")
     private static String getSetterName(String propertyKey) {
         Matcher matcher = POTENTIAL_CAMEL_CASE_PATTERN.matcher(propertyKey);
         StringBuffer buffer = new StringBuffer(); // NOSONAR Unfortunately Matcher does not support StringBuilder
@@ -268,6 +267,7 @@ public class ReportGenerator {
     /**
      * @return {@link FilterConsumer} that filter data based on date range
      */
+    @SuppressWarnings("JdkObsolete")
     private FilterConsumer createFilterByDateRange() {
         FilterConsumer dateRangeFilter = new FilterConsumer();
         dateRangeFilter.setName(DATE_RANGE_FILTER_CONSUMER_NAME);
@@ -381,7 +381,7 @@ public class ReportGenerator {
             String error = String.format(INVALID_CLASS_FMT, className);
             throw new GenerationException(error, ex);
         } catch (ExportException ex) {
-            String error = String.format(INVALID_EXPORT_FMT, exporterName);
+            String error = String.format("Data exporter \"%s\" is unable to export data.", exporterName);
             throw new GenerationException(error, ex);
         }
     }
@@ -533,7 +533,7 @@ public class ReportGenerator {
                             if (converter == null) {
                                 throw new GenerationException(
                                         String.format(
-                                                NOT_SUPPORTED_CONVERSION_FMT,
+                                                "Not supported conversion to \"%s\"",
                                                 parameterType.getName()));
                             }
                             method.invoke(obj, converter.convert(propertyValue));

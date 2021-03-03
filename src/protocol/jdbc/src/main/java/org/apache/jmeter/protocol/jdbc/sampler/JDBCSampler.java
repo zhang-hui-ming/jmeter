@@ -72,8 +72,8 @@ public class JDBCSampler extends AbstractJDBCTestElement implements Sampler, Tes
         Connection conn = null;
 
         try {
-            if(JOrphanUtils.isBlank(getDataSource())) {
-                throw new IllegalArgumentException("Variable Name must not be null in "+getName());
+            if (JOrphanUtils.isBlank(getDataSource())) {
+                throw new IllegalArgumentException("Name for DataSoure must not be empty in " + getName());
             }
 
             try {
@@ -87,12 +87,14 @@ public class JDBCSampler extends AbstractJDBCTestElement implements Sampler, Tes
             final String errCode = Integer.toString(ex.getErrorCode());
             res.setResponseMessage(ex.toString());
             res.setResponseCode(ex.getSQLState()+ " " +errCode);
-            res.setResponseData(ex.getMessage().getBytes());
+            res.setResponseData(ex.getMessage(), res.getDataEncodingWithDefault());
             res.setSuccessful(false);
         } catch (Exception ex) {
             res.setResponseMessage(ex.toString());
             res.setResponseCode("000");
-            res.setResponseData(ObjectUtils.defaultIfNull(ex.getMessage(), "NO MESSAGE").getBytes());
+            res.setResponseData(
+                    ObjectUtils.defaultIfNull(ex.getMessage(), "NO MESSAGE"),
+                    res.getDataEncodingWithDefault());
             res.setSuccessful(false);
         } finally {
             close(conn);

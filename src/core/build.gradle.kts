@@ -22,7 +22,7 @@ plugins {
 dependencies {
     api(project(":src:launcher"))
     api(project(":src:jorphan"))
-    testCompile(project(":src:jorphan", "testClasses"))
+    testImplementation(project(":src:jorphan", "testClasses"))
 
     api("bsf:bsf") {
         because("protected BSFManager BSFTestElement#getManager()")
@@ -60,7 +60,7 @@ dependencies {
     runtimeOnly("org.codehaus.groovy:groovy") {
         because("Groovy is a default JSR232 engine")
     }
-    arrayOf("datetime", "jmx", "json", "jsr223", "sql", "templates").forEach {
+    arrayOf("dateutil", "datetime", "jmx", "json", "jsr223", "sql", "templates").forEach {
         runtimeOnly("org.codehaus.groovy:groovy-$it") {
             because("Groovy is a default JSR232 engine")
         }
@@ -74,11 +74,15 @@ dependencies {
     implementation("com.github.weisj:darklaf-core")
     implementation("com.github.weisj:darklaf-theme")
     implementation("com.github.weisj:darklaf-property-loader")
+    implementation("com.github.weisj:darklaf-extensions-rsyntaxarea")
     implementation("com.miglayout:miglayout-swing")
     implementation("commons-codec:commons-codec") {
         because("DigestUtils")
     }
-    implementation("commons-collections:commons-collections")
+    implementation("commons-collections:commons-collections") {
+        because("Compatibility for old plugins")
+    }
+    implementation("org.apache.commons:commons-collections4")
     implementation("org.apache.commons:commons-math3") {
         because("Mean, DescriptiveStatistics")
     }

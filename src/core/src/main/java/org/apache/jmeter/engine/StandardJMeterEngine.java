@@ -20,7 +20,6 @@ package org.apache.jmeter.engine;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -172,6 +171,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete")
     public void runTest() throws JMeterEngineException {
         if (host != null){
             long now=System.currentTimeMillis();
@@ -209,6 +209,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
         }
     }
 
+    @SuppressWarnings("JdkObsolete")
     private void notifyTestListenersOfEnd(SearchByClass<TestStateListener> testListeners) {
         log.info("Notifying test listeners of end of test");
         for (TestStateListener tl : testListeners.getSearchResults()) {
@@ -289,12 +290,13 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
          * @return boolean true if all threads of all Thread Groups stopped
          */
         private boolean verifyThreadsStopped() {
-            boolean stoppedAll = true;
             // ConcurrentHashMap does not need synch. here
             for (AbstractThreadGroup threadGroup : groups) {
-                stoppedAll = stoppedAll && threadGroup.verifyThreadsStopped();
+                if(!threadGroup.verifyThreadsStopped()) {
+                    return false;
+                }
             }
-            return stoppedAll;
+            return true;
         }
 
         /**
@@ -379,7 +381,7 @@ public class StandardJMeterEngine implements JMeterEngine, Runnable {
         test.traverse(new TurnElementsOn());
         notifyTestListenersOfStart(testListeners);
 
-        List<?> testLevelElements = new LinkedList<>(test.list(test.getArray()[0]));
+        List<?> testLevelElements = new ArrayList<>(test.list(test.getArray()[0]));
         removeThreadGroups(testLevelElements);
 
         SearchByClass<SetupThreadGroup> setupSearcher = new SearchByClass<>(SetupThreadGroup.class);

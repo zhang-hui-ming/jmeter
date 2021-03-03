@@ -30,6 +30,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -39,7 +40,7 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Properties;
 import java.util.ResourceBundle;
-import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -101,7 +102,8 @@ public class JMeterUtils implements UnitTestManager {
 
     private static volatile Properties appProperties;
 
-    private static final Vector<LocaleChangeListener> localeChangeListeners = new Vector<>();
+    private static final CopyOnWriteArrayList<LocaleChangeListener> localeChangeListeners =
+            new CopyOnWriteArrayList<>();
 
     private static volatile Locale locale;
 
@@ -189,15 +191,11 @@ public class JMeterUtils implements UnitTestManager {
      */
     public static void loadJMeterProperties(String file) {
         Properties p = new Properties(System.getProperties());
-        InputStream is = null;
-        try {
-            File f = new File(file);
-            is = new FileInputStream(f);
+        try (InputStream is = new FileInputStream(new File(file))) {
             p.load(is);
         } catch (IOException e) {
-            try {
-                is = ClassLoader.getSystemResourceAsStream(
-                        "org/apache/jmeter/jmeter.properties"); // $NON-NLS-1$
+            try (InputStream is = ClassLoader.getSystemResourceAsStream(
+                        "org/apache/jmeter/jmeter.properties")) { // $NON-NLS-1$
                 if (is == null) {
                     throw new RuntimeException("Could not read JMeter properties file:" + file);
                 }
@@ -205,8 +203,6 @@ public class JMeterUtils implements UnitTestManager {
             } catch (IOException ex) {
                 throw new RuntimeException("Could not read JMeter properties file:" + file);
             }
-        } finally {
-            JOrphanUtils.closeQuietly(is);
         }
         appProperties = p;
     }
@@ -234,19 +230,15 @@ public class JMeterUtils implements UnitTestManager {
      */
     public static Properties loadProperties(String file, Properties defaultProps) {
         Properties p = new Properties(defaultProps);
-        InputStream is = null;
-        try {
-            File f = new File(file);
-            is = new FileInputStream(f);
+        try (InputStream is = new FileInputStream(new File(file))) {
             p.load(is);
         } catch (IOException e) {
-            try {
-                final URL resource = JMeterUtils.class.getClassLoader().getResource(file);
-                if (resource == null) {
-                    log.warn("Cannot find {}", file);
-                    return defaultProps;
-                }
-                is = resource.openStream();
+            final URL resource = JMeterUtils.class.getClassLoader().getResource(file);
+            if (resource == null) {
+                log.warn("Cannot find {}", file);
+                return defaultProps;
+            }
+            try (InputStream is = resource.openStream()) {
                 if (is == null) {
                     log.warn("Cannot open {}", file);
                     return defaultProps;
@@ -256,8 +248,6 @@ public class JMeterUtils implements UnitTestManager {
                 log.warn("Error reading {} {}", file, ex.toString());
                 return defaultProps;
             }
-        } finally {
-            JOrphanUtils.closeQuietly(is);
         }
         return p;
     }
@@ -426,12 +416,7 @@ public class JMeterUtils implements UnitTestManager {
      */
     private static void notifyLocaleChangeListeners() {
         LocaleChangeEvent event = new LocaleChangeEvent(JMeterUtils.class, locale);
-        @SuppressWarnings("unchecked") // clone will produce correct type
-        // TODO but why do we need to clone the list?
-        // ANS: to avoid possible ConcurrentUpdateException when unsubscribing
-        // Could perhaps avoid need to clone by using a modern concurrent list
-        Vector<LocaleChangeListener> listeners = (Vector<LocaleChangeListener>) localeChangeListeners.clone();
-        for (LocaleChangeListener listener : listeners) {
+        for (LocaleChangeListener listener : localeChangeListeners) {
             listener.localeChanged(event);
         }
     }
@@ -671,9 +656,9 @@ public class JMeterUtils implements UnitTestManager {
         try {
             String lineEnd = System.getProperty("line.separator"); // $NON-NLS-1$
             InputStream is = JMeterUtils.class.getClassLoader().getResourceAsStream(name);
-            if(is != null) {
-                try (Reader in = new InputStreamReader(is);
-                        BufferedReader fileReader = new BufferedReader(in)) {
+            if (is != null) {
+                try (Reader in = new InputStreamReader(is, StandardCharsets.UTF_8);
+                     BufferedReader fileReader = new BufferedReader(in)) {
                     return fileReader.lines()
                             .collect(Collectors.joining(lineEnd, "", lineEnd));
                 }
@@ -875,13 +860,13 @@ public class JMeterUtils implements UnitTestManager {
             errorMsg = "Unknown error - see log file";
             log.warn("Unknown error", new Throwable("errorMsg == null"));
         }
+        if (exception != null) {
+            log.error(errorMsg, exception);
+        } else {
+            log.error(errorMsg);
+        }
         GuiPackage instance = GuiPackage.getInstance();
         if (instance == null) {
-            if(exception != null) {
-                log.error(errorMsg, exception);
-            } else {
-                log.error(errorMsg);
-            }
             System.out.println(errorMsg); // NOSONAR intentional
             return; // Done
         }

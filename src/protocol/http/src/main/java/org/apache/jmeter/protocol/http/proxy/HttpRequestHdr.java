@@ -84,6 +84,10 @@ public class HttpRequestHdr {
 
     private int httpSampleNameMode;
 
+    private String httpSampleNameFormat;
+
+    private boolean detectGraphQLRequest;
+
     public HttpRequestHdr() {
         this("", "");
     }
@@ -100,19 +104,37 @@ public class HttpRequestHdr {
      * @param httpSamplerName the http sampler name
      */
     public HttpRequestHdr(String prefix, String httpSamplerName) {
-        this(prefix, httpSamplerName,0);
+        this(prefix, httpSamplerName, 0, "{0}{1}");
     }
 
     /**
      * @param prefix Sampler prefix
      * @param httpSamplerName the http sampler name
      * @param httpSampleNameMode the naming mode of sampler name
+     * @param format format to use when mode is 3
      */
-    public HttpRequestHdr(String prefix, String httpSamplerName, int httpSampleNameMode) {
+    public HttpRequestHdr(String prefix, String httpSamplerName, int httpSampleNameMode, String format) {
         this.prefix = prefix;
         this.httpSamplerName = httpSamplerName;
         this.firstLine = "" ; // $NON-NLS-1$
         this.httpSampleNameMode = httpSampleNameMode;
+        this.httpSampleNameFormat = format;
+    }
+
+    /**
+     * Return true if automatic GraphQL Request detection is enabled.
+     * @return true if automatic GraphQL Request detection is enabled
+     */
+    public boolean isDetectGraphQLRequest() {
+        return detectGraphQLRequest;
+    }
+
+    /**
+     * Sets whether automatic GraphQL Request detection is enabled.
+     * @param detectGraphQLRequest whether automatic GraphQL Request detection is enabled
+     */
+    public void setDetectGraphQLRequest(boolean detectGraphQLRequest) {
+        this.detectGraphQLRequest = detectGraphQLRequest;
     }
 
     /**
@@ -212,7 +234,7 @@ public class HttpRequestHdr {
                 log.debug("Successfully built URI from url:{} => {}", url, testCleanUri.toString());
             }
         } catch (URISyntaxException e) {
-            log.warn("Url '" + url + "' contains unsafe characters, will escape it, message:"+e.getMessage());
+            log.warn("Url '{}' contains unsafe characters, will escape it, message:{}", url, e.getMessage());
             try {
                 String escapedUrl = ConversionUtils.escapeIllegalURLCharacters(url);
                 if(log.isDebugEnabled()) {
@@ -220,7 +242,7 @@ public class HttpRequestHdr {
                 }
                 url = escapedUrl;
             } catch (Exception e1) {
-                log.error("Error escaping URL:'"+url+"', message:"+e1.getMessage());
+                log.error("Error escaping URL:'{}', message:{}", url, e1.getMessage());
             }
         }
         log.debug("First Line url: {}", url);
@@ -462,5 +484,9 @@ public class HttpRequestHdr {
      */
     public int getHttpSampleNameMode() {
         return httpSampleNameMode;
+    }
+
+    public String getHttpSampleNameFormat() {
+        return httpSampleNameFormat;
     }
 }

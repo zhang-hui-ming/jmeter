@@ -52,15 +52,19 @@ dependencies {
         // runtime means "the dependency is only for runtime, not for compilation"
         // In other words, marking dependency as "runtime" would avoid accidental
         // dependency on it during compilation
-        runtimev("org.apache.tika:tika-parsers", "tika")
-        runtimev("org.ow2.asm:asm")
+        // Note: if there's at least single chance for the dependency to be needed on the
+        // compilation classpath (e.g. it is used as a transitive by a third-party library)
+        // then it should be declared as "api" here since we use useCompileClasspathVersions
+        // to make runtime classpath consistent with the compile one.
+        apiv("org.apache.tika:tika-parsers", "tika")
+        apiv("org.ow2.asm:asm")
 
         // activemq-all should not be used as it provides secondary slf4j binding
-        runtimev("org.apache.activemq:activemq-broker", "activemq")
-        runtimev("org.apache.activemq:activemq-client", "activemq")
-        runtimev("org.apache.activemq:activemq-spring", "activemq")
-        runtimev("org.springframework:spring-context", "springframework")
-        runtimev("org.springframework:spring-beans", "springframework")
+        apiv("org.apache.activemq:activemq-broker", "activemq")
+        apiv("org.apache.activemq:activemq-client", "activemq")
+        apiv("org.apache.activemq:activemq-spring", "activemq")
+        apiv("org.springframework:spring-context", "springframework")
+        apiv("org.springframework:spring-beans", "springframework")
 
         apiv("bsf:bsf")
         apiv("cglib:cglib-nodep")
@@ -74,6 +78,7 @@ dependencies {
         apiv("com.github.weisj:darklaf-core", "darklaf")
         apiv("com.github.weisj:darklaf-theme", "darklaf")
         apiv("com.github.weisj:darklaf-property-loader", "darklaf")
+        apiv("com.github.weisj:darklaf-extensions-rsyntaxarea", "darklaf.extensions")
         apiv("com.helger:ph-commons")
         apiv("com.helger:ph-css")
         apiv("com.jayway.jsonpath:json-path")
@@ -85,6 +90,7 @@ dependencies {
         apiv("commons-collections:commons-collections")
         apiv("commons-io:commons-io")
         apiv("commons-lang:commons-lang")
+        apiv("commons-logging:commons-logging")
         apiv("commons-net:commons-net")
         apiv("dnsjava:dnsjava")
         apiv("io.burt:jmespath-core")
@@ -103,6 +109,7 @@ dependencies {
         apiv("net.sf.saxon:Saxon-HE")
         apiv("nl.jqno.equalsverifier:equalsverifier")
         apiv("org.apache-extras.beanshell:bsh")
+        apiv("org.apache.commons:commons-collections4")
         apiv("org.apache.commons:commons-dbcp2")
         apiv("org.apache.commons:commons-jexl3")
         apiv("org.apache.commons:commons-jexl")

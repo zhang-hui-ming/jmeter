@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
  * which will return null if it is filtered and replace any part of the string
  * that should be replaced.
  */
+@SuppressWarnings("InconsistentCapitalization")
 public class LogFilter implements Filter, Serializable {
 
     private static final long serialVersionUID = 241L;
@@ -415,7 +416,7 @@ public class LogFilter implements Filter, Serializable {
             return JMeterUtils.getPatternCache().getPattern(pattern,
                     Perl5Compiler.READ_ONLY_MASK | Perl5Compiler.SINGLELINE_MASK);
         } catch (MalformedCachePatternException exception) {
-            log.error("Problem with pattern: "+pattern,exception);
+            log.error("Problem with pattern: {}", pattern, exception);
             return null;
         }
     }

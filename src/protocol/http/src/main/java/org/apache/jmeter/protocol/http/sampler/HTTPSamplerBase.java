@@ -18,6 +18,7 @@
 package org.apache.jmeter.protocol.http.sampler;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -100,7 +101,7 @@ public abstract class HTTPSamplerBase extends AbstractSampler
     implements TestStateListener, TestIterationListener, ThreadListener, HTTPConstantsInterface,
         Replaceable {
 
-    private static final long serialVersionUID = 242L;
+    private static final long serialVersionUID = 243L;
 
     private static final Logger log = LoggerFactory.getLogger(HTTPSamplerBase.class);
 
@@ -266,6 +267,9 @@ public abstract class HTTPSamplerBase extends AbstractSampler
     // Embedded URLs must match this RE (if provided)
     public static final String EMBEDDED_URL_RE = "HTTPSampler.embedded_url_re"; // $NON-NLS-1$
 
+    // Embedded URLs must not match this RE (if provided)
+    public static final String EMBEDDED_URL_EXCLUDE_RE = "HTTPSampler.embedded_url_exclude_re"; // $NON-NLS-1$
+
     public static final String MONITOR = "HTTPSampler.monitor"; // $NON-NLS-1$
 
     // Store MD5 hash instead of storing response
@@ -340,7 +344,7 @@ public abstract class HTTPSamplerBase extends AbstractSampler
 
     ////////////////////// Code ///////////////////////////
 
-    public HTTPSamplerBase() {
+    protected HTTPSamplerBase() {
         setArguments(new Arguments());
     }
 
@@ -564,7 +568,7 @@ public abstract class HTTPSamplerBase extends AbstractSampler
     }
 
     /**
-     * @deprecated use {@link HTTPSamplerBase#getDoMultipartPost()}
+     * @deprecated use {@link HTTPSamplerBase#getDoMultipart()}
      * @return flag whether multiparts should be used
      */
     @Deprecated
@@ -1027,6 +1031,17 @@ public abstract class HTTPSamplerBase extends AbstractSampler
     }
 
     /**
+     * @return the regular (as String) expression that embedded URLs must not match
+     */
+    public String getEmbededUrlExcludeRE() {
+        return getPropertyAsString(EMBEDDED_URL_EXCLUDE_RE, "");
+    }
+
+    public void setEmbeddedUrlExcludeRE(String regex) {
+        setProperty(EMBEDDED_URL_EXCLUDE_RE, regex, "");
+    }
+
+    /**
      * Populates the provided HTTPSampleResult with details from the Exception.
      * Does not create a new instance, so should not be used directly to add a subsample.
      *
@@ -1349,15 +1364,27 @@ public abstract class HTTPSamplerBase extends AbstractSampler
             res = lContainer;
 
             // Get the URL matcher
-            String re = getEmbeddedUrlRE();
+            String allowRegex = getEmbeddedUrlRE();
             Perl5Matcher localMatcher = null;
-            Pattern pattern = null;
-            if (re.length() > 0) {
+            Pattern allowPattern = null;
+            if (allowRegex.length() > 0) {
                 try {
-                    pattern = JMeterUtils.getPattern(re);
+                    allowPattern = JMeterUtils.getPattern(allowRegex);
                     localMatcher = JMeterUtils.getMatcher();// don't fetch unless pattern compiles
                 } catch (MalformedCachePatternException e) { // NOSONAR
                     log.warn("Ignoring embedded URL match string: {}", e.getMessage());
+                }
+            }
+            Pattern excludePattern = null;
+            String excludeRegex = getEmbededUrlExcludeRE();
+            if (excludeRegex.length() > 0) {
+                try {
+                    excludePattern = JMeterUtils.getPattern(excludeRegex);
+                    if (localMatcher == null) {
+                        localMatcher = JMeterUtils.getMatcher();// don't fetch unless pattern compiles
+                    }
+                } catch (MalformedCachePatternException e) { // NOSONAR
+                    log.warn("Ignoring embedded URL exclude string: {}", e.getMessage());
                 }
             }
 
@@ -1396,8 +1423,12 @@ public abstract class HTTPSamplerBase extends AbstractSampler
                             setParentSampleSuccess(res, false);
                             continue;
                         }
+                        log.debug("allowPattern: {}, excludePattern: {}, localMatcher: {}, url: {}", allowPattern, excludePattern, localMatcher, url);
                         // I don't think localMatcher can be null here, but check just in case
-                        if (pattern != null && localMatcher != null && !localMatcher.matches(url.toString(), pattern)) {
+                        if (allowPattern != null && localMatcher != null && !localMatcher.matches(url.toString(), allowPattern)) {
+                            continue; // we have a pattern and the URL does not match, so skip it
+                        }
+                        if (excludePattern != null && localMatcher != null && localMatcher.matches(url.toString(), excludePattern)) {
                             continue; // we have a pattern and the URL does not match, so skip it
                         }
                         try {
@@ -1877,7 +1908,7 @@ public abstract class HTTPSamplerBase extends AbstractSampler
     public byte[] readResponse(SampleResult sampleResult, InputStream in, long length) throws IOException {
 
         OutputStream w = null;
-        try { // NOSONAR No try with resource as performance is critical here
+        try (Closeable ignore = in) { // NOSONAR No try with resource as performance is critical here
             byte[] readBuffer = new byte[8192]; // 8kB is the (max) size to have the latency ('the first packet')
             int bufferSize = 32;// Enough for MD5
 
@@ -1948,8 +1979,7 @@ public abstract class HTTPSamplerBase extends AbstractSampler
             }
 
         } finally {
-            IOUtils.closeQuietly(in);
-            IOUtils.closeQuietly(w);
+            IOUtils.closeQuietly(w, null);
         }
     }
 

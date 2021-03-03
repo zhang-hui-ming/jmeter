@@ -155,7 +155,7 @@ public class SaveService {
     private static String fileVersion = ""; // computed from saveservice.properties file// $NON-NLS-1$
     // Must match the sha1 checksum of the file saveservice.properties (without newline character),
     // used to ensure saveservice.properties and SaveService are updated simultaneously
-    static final String FILEVERSION = "56ae8319b2b02d33eb1028c4460db770cf246b5c"; // Expected value $NON-NLS-1$
+    static final String FILEVERSION = "66ea47f7da884dff1c42ccede75113971c5c11f3"; // Expected value $NON-NLS-1$
 
     private static String fileEncoding = ""; // read from properties file// $NON-NLS-1$
 
@@ -280,10 +280,11 @@ public class SaveService {
             throws InstantiationException, IllegalAccessException,
             InvocationTargetException, NoSuchMethodException,
             ClassNotFoundException {
+        final Class<? extends Converter> clazz = Class.forName(key).asSubclass(Converter.class);
         if (useMapper){
-            jmxsaver.registerConverter((Converter) Class.forName(key).getConstructor(Mapper.class).newInstance(jmxsaver.getMapper()));
+            jmxsaver.registerConverter(clazz.getConstructor(Mapper.class).newInstance(jmxsaver.getMapper()));
         } else {
-            jmxsaver.registerConverter((Converter) Class.forName(key).getDeclaredConstructor().newInstance());
+            jmxsaver.registerConverter(clazz.getDeclaredConstructor().newInstance());
         }
     }
 

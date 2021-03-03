@@ -25,7 +25,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
@@ -178,7 +178,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
             null, // Value
     };
 
-    public SamplerResultTab() {
+    protected SamplerResultTab() {
         // create tables
         resultModel = new ObjectTableModel(COLUMNS_RESULT, RowResult.class, // The object used for each row
                 new Functor[] {
@@ -225,7 +225,7 @@ public abstract class SamplerResultTab implements ResultRenderer {
     }
 
     @Override
-    @SuppressWarnings("boxing")
+    @SuppressWarnings({"boxing", "JdkObsolete"})
     public void setupTabPane() {
         // Clear all data before display a new
         this.clearData();
@@ -396,8 +396,8 @@ public abstract class SamplerResultTab implements ResultRenderer {
 
                 // Parsed response headers
                 LinkedHashMap<String, String> lhm = JMeterUtils.parseHeaders(sampleResult.getResponseHeaders());
-                Set<Entry<String, String>> keySet = lhm.entrySet();
-                for (Entry<String, String> entry : keySet) {
+                Set<Map.Entry<String, String>> keySet = lhm.entrySet();
+                for (Map.Entry<String, String> entry : keySet) {
                     resHeadersModel.addRow(new RowResult(entry.getKey(), entry.getValue()));
                 }
 

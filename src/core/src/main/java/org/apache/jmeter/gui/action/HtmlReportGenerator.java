@@ -40,7 +40,7 @@ public class HtmlReportGenerator {
     public static final String CANNOT_CREATE_DIRECTORY = "generate_report_ui.cannot_create_directory";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HtmlReportGenerator.class);
-    private static final long COMMAND_TIMEOUT = JMeterUtils.getPropDefault("generate_report_ui.generation_timeout", 120_000L);
+    private static final long COMMAND_TIMEOUT = JMeterUtils.getPropDefault("generate_report_ui.generation_timeout", 300_000L);
 
     private String csvFilePath;
     private String userPropertiesFilePath;
@@ -87,9 +87,15 @@ public class HtmlReportGenerator {
                 LOGGER.info("The HTML report generation failed and returned: {}", commandExecutionOutput);
                 return errorMessageList;
             }
-        } catch (InterruptedException | TimeoutException | IOException e) {
-            errorMessageList.add(commandExecutionOutput.toString());
-            LOGGER.error("Error during HTML report generation:", e);
+        } catch (TimeoutException e) {
+            errorMessageList.add(MessageFormat.format(JMeterUtils.getResString("generate_report_ui.html_report_timeout_error"),
+                    COMMAND_TIMEOUT, e.getMessage(), commandExecutionOutput));
+            LOGGER.error("Report generation took more time than configured timeout (Property {}={}, command output=[{}])",
+                    "generate_report_ui.generation_timeout", COMMAND_TIMEOUT, commandExecutionOutput, e);
+        } catch (InterruptedException | IOException e) {
+            errorMessageList.add(MessageFormat.format(JMeterUtils.getResString("generate_report_ui.html_report_unknown_error"),
+                    e.getMessage(), commandExecutionOutput));
+            LOGGER.error("Error during HTML report generation, executing {}", commandExecutionOutput, e);
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }

@@ -21,9 +21,9 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.Authenticator;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -31,12 +31,13 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -98,6 +99,7 @@ import org.apache.jmeter.threads.RemoteThreadsListenerTestElement;
 import org.apache.jmeter.util.BeanShellInterpreter;
 import org.apache.jmeter.util.BeanShellServer;
 import org.apache.jmeter.util.JMeterUtils;
+import org.apache.jmeter.util.SecurityProviderLoader;
 import org.apache.jmeter.util.ShutdownClient;
 import org.apache.jorphan.collections.HashTree;
 import org.apache.jorphan.collections.SearchByClass;
@@ -385,18 +387,26 @@ public class JMeter implements JMeterPlugin {
         SplashScreen splash = new SplashScreen();
         splash.showScreen();
         splash.setProgress(10);
+        log.debug("Apply HiDPI on fonts");
         JMeterUtils.applyHiDPIOnFonts();
+        splash.setProgress(20);
+        log.debug("Configure PluginManager");
         PluginManager.install(this, true);
-
-        JMeterTreeModel treeModel = new JMeterTreeModel();
         splash.setProgress(30);
+        log.debug("Setup tree");
+        JMeterTreeModel treeModel = new JMeterTreeModel();
         JMeterTreeListener treeLis = new JMeterTreeListener(treeModel);
         final ActionRouter instance = ActionRouter.getInstance();
+        splash.setProgress(40);
+        log.debug("populate command map");
         instance.populateCommandMap();
         splash.setProgress(60);
         treeLis.setActionHandler(instance);
+        log.debug("init instance");
+        splash.setProgress(70);
         GuiPackage.initInstance(treeLis, treeModel);
         splash.setProgress(80);
+        log.debug("constructing main frame");
         MainFrame main = new MainFrame(treeModel, treeLis);
         splash.setProgress(100);
         ComponentUtil.centerComponentInWindow(main, 80);
@@ -439,6 +449,7 @@ public class JMeter implements JMeterPlugin {
      * Called reflectively by {@link NewDriver#main(String[])}
      * @param args The arguments for JMeter
      */
+    @SuppressWarnings("JdkObsolete")
     public void start(String[] args) {
         CLArgsParser parser = new CLArgsParser(args, options);
         String error = parser.getErrorString();
@@ -462,10 +473,12 @@ public class JMeter implements JMeterPlugin {
         try {
             initializeProperties(parser); // Also initialises JMeter logging
 
+            SecurityProviderLoader.addSecurityProvider(JMeterUtils.getJMeterProperties());
+
             Thread.setDefaultUncaughtExceptionHandler(
                     (Thread t, Throwable e) -> {
                     if (!(e instanceof ThreadDeath)) {
-                        log.error("Uncaught exception in thread " + t, e);
+                        log.error("Uncaught exception in thread {}", t, e);
                         System.err.println("Uncaught Exception " + e + " in thread " + t + ". See log file for details.");//NOSONAR
                     }
             });
@@ -700,7 +713,7 @@ public class JMeter implements JMeterPlugin {
             File file = new File(jsr223Init);
             if(file.exists() && file.canRead()) {
                 String extension = StringUtils.defaultIfBlank(FilenameUtils.getExtension(jsr223Init), "Groovy");
-                try (FileReader reader = new FileReader(file)) {
+                try (Reader reader = Files.newBufferedReader(file.toPath())) {
                     ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
                     ScriptEngine engine = scriptEngineManager.getEngineByExtension(extension);
                     if (engine == null) {
@@ -995,7 +1008,8 @@ public class JMeter implements JMeterPlugin {
     }
 
     // run test in batch mode
-     void runNonGui(String testFile, String logFile, boolean remoteStart, String remoteHostsString, boolean generateReportDashboard)
+    @SuppressWarnings("JdkObsolete")
+    void runNonGui(String testFile, String logFile, boolean remoteStart, String remoteHostsString, boolean generateReportDashboard)
             throws ConfigurationException {
         try {
             File f = new File(testFile);
@@ -1067,7 +1081,7 @@ public class JMeter implements JMeterPlugin {
             // when NON GUI mode is used
             clonedTree.add(clonedTree.getArray()[0], new RemoteThreadsListenerTestElement());
 
-            List<JMeterEngine> engines = new LinkedList<>();
+            List<JMeterEngine> engines = new ArrayList<>();
             println("Created the tree successfully using "+testFile);
             if (!remoteStart) {
                 JMeterEngine engine = new StandardJMeterEngine();
@@ -1080,7 +1094,7 @@ public class JMeter implements JMeterPlugin {
                 engine.runTest();
             } else {
                 java.util.StringTokenizer st = new java.util.StringTokenizer(remoteHostsString.trim(), ",");//$NON-NLS-1$
-                List<String> hosts = new LinkedList<>();
+                List<String> hosts = new ArrayList<>();
                 while (st.hasMoreElements()) {
                     hosts.add(((String) st.nextElement()).trim());
                 }
@@ -1153,8 +1167,7 @@ public class JMeter implements JMeterPlugin {
      * @param tree The {@link HashTree} to convert
      */
     private static void pConvertSubTree(HashTree tree) {
-        LinkedList<Object> copyList = new LinkedList<>(tree.list());
-        for (Object o  : copyList) {
+        for (Object o : new ArrayList<>(tree.list())) {
             if (o instanceof TestElement) {
                 TestElement item = (TestElement) o;
                 if (item.isEnabled()) {
@@ -1302,6 +1315,7 @@ public class JMeter implements JMeterPlugin {
             }
         }
 
+        @SuppressWarnings("JdkObsolete")
         private void endTest(boolean isDistributed) {
             long now = System.currentTimeMillis();
             if (isDistributed) {
@@ -1380,6 +1394,7 @@ public class JMeter implements JMeterPlugin {
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete")
     public String[][] getIconMappings() {
         final String defaultIconProp = "org/apache/jmeter/images/icon.properties"; //$NON-NLS-1$
         final String iconSize = JMeterUtils.getPropDefault(TREE_ICON_SIZE, DEFAULT_TREE_ICON_SIZE);

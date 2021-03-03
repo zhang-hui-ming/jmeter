@@ -196,6 +196,17 @@ Defaults to: <code>true</code>
     Defaults to: <code>500</code></property>
 </properties>
 </section>
+<section name="&sect-num;.4.1 Darklaf configuration" anchor="darklaf_config">
+<properties>
+    <property name="darklaf.decorations">
+        Enables custom window chrome when using a Darklaf Look And Feel.
+        Defaults to: <code>false</code></property>
+    <property name="darklaf.unifiedMenuBar">
+        Enables the unified menubar on Windows when using a Darklaf Look and Feel.<br/>
+        This property only has an effect if <code>darklaf.native</code> is <code>true</code>.
+        Defaults to: <code>true</code></property>
+</properties>
+</section>
 <section name="&sect-num;.5 Toolbar display" anchor="toolbar_display">
 <properties>
 <property name="jmeter.toolbar.icons">
@@ -332,8 +343,8 @@ JMETER-SERVER</source>
     Defaults to: <code>1099</code>
 </property>
 <property name="client.rmi.localport">
-    Parameter that controls the RMI port used by the <code>RemoteSampleListenerImpl</code> (The Controller)<br/>
-    Default value is <code>0</code>, which means port is randomly assigned.
+    Parameter that controls the RMI ports used by <code>RemoteSampleListenerImpl</code> and <code>RemoteThreadsListenerImpl</code> (The Controller)<br/>
+    Default value is <code>0</code>, which means ports are randomly assigned.
     If this is non-zero, it will be used as the base for local port numbers for the client engine.
     At the moment JMeter will open up to three ports beginning with the port defined in this property.
     <note>You may need to open corresponding ports in the firewall on the Controller machine.</note>
@@ -454,6 +465,12 @@ JMETER-SERVER</source>
     Define the local host address to be used for multi-homed hosts,
     example <source>httpclient.localaddress=1.2.3.4</source>
 </property>
+<property name="http.proxyUser">
+    Set the user name to use with a proxy.
+</property>
+<property name="http.proxyPass">
+    Set the password to use with a proxy.
+</property>
 </properties>
 </section>
 <section name="&sect-num;.11 Kerberos properties" anchor="kerberos">
@@ -531,11 +548,6 @@ JMETER-SERVER</source>
     <abbr title="time to live">TTL</abbr> (in milliseconds) represents an absolute value.
     No matter what, the connection will not be re-used beyond its TTL.<br/>
     Defaults to: <code>60000</code>
-</property>
-<property name="httpclient4.max_body_retain_size">
-    Max size in bytes of <code>PUT</code> body to retain in result sampler.
-    Bigger results will be clipped.<br/>
-    Defaults to: <code>327678</code> (bytes)
 </property>
 <property name="httpclient4.deflate_relax_mode">
     Ignore EOFException that some edgy application may emit to signal end of Deflated stream.<br/>
@@ -727,7 +739,7 @@ JMETER-SERVER</source>
 <property name="sampleresult.timestamp.start">
     Save the start time stamp instead of the end.<br/>
     This also affects the timestamp stored in result files.<br/>
-    Defaults to: <code>true</code>
+    Defaults to: <code>false</code>
 </property>
 <property name="sampleresult.useNanoTime">
     Whether to use <code>System.nanoTime()</code> - otherwise only use <code>System.currentTimeMillis()</code>.<br/>
@@ -765,6 +777,11 @@ JMETER-SERVER</source>
 <property name="proxy.number.requests">
     Add numeric suffix to Sampler names.<br/>
     defaults to: <code>true</code>
+</property>
+<property name="proxy.sampler_format">
+    Default format string for new samplers when <code>Use format string</code> is selected
+    as <code>naming scheme</code>.<br/>
+    Defaults to: <code>#{counter,number,000} - #{path} (#{name})</code>
 </property>
 <property name="proxy.excludes.suggested">
     List of URL patterns that will be added to URL Patterns to exclude.<br/>
@@ -1768,7 +1785,7 @@ JMETER-SERVER</source>
 </property>
 <property name="generate_report_ui.generation_timeout">
     Timeout in milliseconds for Report generation when using Tools &gt; Generate HTML report.<br/>
-    Defaults to: 120000
+    Defaults to: 300000
 </property>
 </properties>
 </section>
@@ -1929,6 +1946,28 @@ JMETER-SERVER</source>
     Path to XSL file used to generate Schematic View of Test Plan.<br/>
     When empty, JMeter will use the embedded one in src/core/org/apache/jmeter/gui/action/schematic.xsl<br/>
     No default value</property>
+</properties>
+</section>
+<section name="&sect-num;.46 Security Provider" anchor="securityprovider">
+<description>Advanced properties for documentation generation</description>
+<properties>
+    <property name="security.provider">
+        The value must be in this format: &lt;ClassName&gt;[:&lt;Postion&gt;[:&lt;ConfigString&gt;]]</property>.
+        Examples:<br/>
+        <dl>
+            <dt>org.bouncycastle.jce.provider.BouncyCastleProvider</dt>
+            <dd>Adds the <code>BouncyCastleProvider</code> to the next position available.</dd>
+            <dt>org.bouncycastle.jce.provider.BouncyCastleProvider:1</dt>
+            <dd>Adds the <code>BouncyCastleProvider</code>, at the first position.</dd>
+            <dt>org.bouncycastle.jsse.provider.BouncyCastleJsseProvider:2:BC</dt>
+            <dd>Adds the <code>BouncyCastleJsseProvider</code>, at the second position. And configure it to use the
+                BC provider.</dd>
+        </dl>
+    <property name="security.provider.&lt;n&gt;">
+        Replace the <code>&lt;n&gt;</code> with any number. The SecurityProviders will be added in the alphabetical
+        order of the property names. (First: <code>security.provider</code> and then <code>security.provider.2</code>, <code>security.provider.3</code>,...)
+        See property <code>security.provider</code>
+        </property>
 </properties>
 </section>
 <!--

@@ -22,6 +22,7 @@
 <!ENTITY hellip   "&#x02026;" >
 <!ENTITY le       "&#x02264;" >
 <!ENTITY ge       "&#x02265;" >
+<!ENTITY nnbsp    "&#8239;" >
 ]>
 <document index="yes" index-level-2="yes" index-numbers="no" colbreak="&sect-num;.4"
   prev="boss.html" next="properties_reference.html" id="$Id$">
@@ -130,7 +131,7 @@ Latency is set to the time it takes to login.
         them.  This can save you time if you have a lot of HTTP requests or requests with many
         parameters.</p>
 
-        <p><b>There are two different test elements used to define the samplers:</b></p>
+        <p><b>There are three different test elements used to define the samplers:</b></p>
         <dl>
         <dt>AJP/1.3 Sampler</dt><dd>uses the Tomcat mod_jk protocol (allows testing of Tomcat in AJP mode without needing Apache httpd)
         The AJP Sampler does not support multiple file upload; only the first file will be used.
@@ -142,6 +143,17 @@ Latency is set to the time it takes to login.
             <dt><code>HTTPClient4</code></dt><dd>uses Apache HttpComponents HttpClient 4.x.</dd>
             <dt>Blank Value</dt><dd>does not set implementation on HTTP Samplers, so relies on HTTP Request Defaults if present or on <code>jmeter.httpsampler</code> property defined in <code>jmeter.properties</code></dd>
           </dl>
+        </dd>
+        <dt>GraphQL HTTP Request</dt><dd>this is a GUI variation of the <b>HTTP Request</b> to provide more convenient UI elements
+        to view or edit GraphQL <b>Query</b>, <b>Variables</b> and <b>Operation Name</b>, while converting them into HTTP Arguments automatically under the hood
+        using the same sampler.
+        This hides or customizes the following UI elements as they are less convenient for or irrelevant to GraphQL over HTTP/HTTPS requests:
+        <ul>
+          <li><b>Method</b>: Only POST and GET methods are available conforming the GraphQL over HTTP specification. POST method is selected by default.</li>
+          <li><b>Parameters</b> and <b>Post Body</b> tabs: you may view or edit parameter content through Query, Variables and Operation Name UI elements instead.</li>
+          <li><b>File Upload</b> tab: irrelevant to GraphQL queries.</li>
+          <li><b>Embedded Resources from HTML Files</b> section in the Advanced tab: irrelevant in GraphQL JSON responses.</li>
+        </ul>
         </dd>
         </dl>
          <p>The Java HTTP implementation has some limitations:</p>
@@ -200,7 +212,9 @@ https.default.protocol=SSLv3
         <a href="build-adv-web-test-plan.html#session_url_rewriting">6.1 Handling User Sessions With URL Rewriting</a>
         for additional configuration steps.</p>
 </description>
-<figure width="951" height="284" image="http-request-advanced-tab.png">HTTP Request Advanced config fields</figure>
+<figure width="951" height="548" image="http-request-advanced-tab.png">HTTP Request Advanced config fields</figure>
+<figure width="950" height="618" image="graphql-http-request.png">Screenshot of Control-Panel of GraphQL HTTP Request</figure>
+<figure width="950" height="618" image="graphql-http-request-vars.png">Variables field for GraphQL HTTP Request</figure>
 
 <properties>
         <property name="Name" required="No">Descriptive name for this sampler that is shown in the tree.</property>
@@ -301,18 +315,20 @@ so unsafe characters may need to be encoded to avoid errors such as <code>URISyn
         <ul>
             <li>ASCII Control Chars</li>
             <li>Non-ASCII characters</li>
-            <li>Reserved characters:URLs use some characters for special use in defining their syntax. When these characters are not used in their special role inside a URL, they need to be encoded, example : '<code>$</code>', '<code>&amp;</code>', '<code>+</code>', '<code>,</code>' , '<code>/</code>', '<code>:</code>', '<code>;</code>', '<code>=</code>', '<code>?</code>', '<code>@</code>'</li>
-            <li>Unsafe characters: Some characters present the possibility of being misunderstood within URLs for various reasons. These characters should also always be encoded, example : '<code> </code>', '<code>&lt;</code>', '<code>&gt;</code>', '<code>#</code>', '<code>%</code>', &hellip;</li>
+            <li>Reserved characters:URLs use some characters for special use in defining their syntax. When these characters are not used in their special role inside a URL, they need to be encoded, example: '<code>$</code>', '<code>&amp;</code>', '<code>+</code>', '<code>,</code>' , '<code>/</code>', '<code>:</code>', '<code>;</code>', '<code>=</code>', '<code>?</code>', '<code>@</code>'</li>
+            <li>Unsafe characters: Some characters present the possibility of being misunderstood within URLs for various reasons. These characters should also always be encoded, example: '<code> </code>', '<code>&lt;</code>', '<code>&gt;</code>', '<code>#</code>', '<code>%</code>', &hellip;</li>
         </ul>
         </property>
         <property name="File Path:" required="No">Name of the file to send.  If left blank, JMeter
         does not send a file, if filled in, JMeter automatically sends the request as
         a multipart form request.
         <p>
-        If it is a <code>POST</code> or <code>PUT</code> or <code>PATCH</code> request and there is a single file whose 'Parameter name' attribute (below) is omitted,
-        then the file is sent as the entire body
-        of the request, i.e. no wrappers are added. This allows arbitrary bodies to be sent. This functionality is present for <code>POST</code> requests,
-        and also for <code>PUT</code> requests.
+        When <code>MIME Type</code> is empty, JMeter will try to guess the MIME type of the given file.
+        </p>
+        <p>
+        If it is a <code>POST</code> or <code>PUT</code> or <code>PATCH</code> request and there is a single file whose '<code>Parameter name</code>'
+        attribute (below) is omitted, then the file is sent as the entire body of the request, i.e. no wrappers are added. This allows arbitrary
+        bodies to be sent. This functionality is present for <code>POST</code> requests, and also for <code>PUT</code> requests.
         <b>See below for some further information on parameter handling.</b>
         </p>
         </property>
@@ -331,10 +347,15 @@ and send HTTP/HTTPS requests for all images, Java applets, JavaScript files, CSS
        Instead, the 32 character MD5 hash of the data is calculated and stored instead.
        This is intended for testing large amounts of data.
        </property>
-        <property name="Embedded URLs must match:" required="No">
+        <property name="URLs must match:" required="No">
         If present, this must be a regular expression that is used to match against any embedded URLs found.
-        So if you only want to download embedded resources from <code>http://example.com/</code>, use the expression:
-        <code>http://example\.com/.*</code>
+        So if you only want to download embedded resources from <code>http://example.invalid/</code>, use the expression:
+        <code>http://example\.invalid/.*</code>
+        </property>
+        <property name="URLs must not match:" required="No">
+        If present, this must be a regular expression that is used to filter out any embedded URLs found.
+        So if you don't want to download PNG or SVG files from any source, use the expression:
+        <code>.*\.(?i:svg|png)</code>
         </property>
         <property name="Use concurrent pool" required="No">Use a pool of concurrent connections to get embedded resources.</property>
         <property name="Size" required="No">Pool size for concurrent connections used to get embedded resources.</property>
@@ -358,6 +379,19 @@ and send HTTP/HTTPS requests for all images, Java applets, JavaScript files, CSS
         If the property <code>httpclient.localaddress</code> is defined, that is used for all HttpClient requests.
         </property>
 </properties>
+      <p>The following parameters are available only for <b>GraphQL HTTP Request</b>:</p>
+      <properties>
+        <property name="Query" required="Yes">
+          GraphQL query (or mutation) statement.
+        </property>
+        <property name="Variables" required="No">
+          GraphQL query (or mutation) variables in a valid JSON string.
+          <b>Note</b>: If the input string is not a valid JSON string, this will be ignored with an ERROR log.
+        </property>
+        <property name="Operation Name" required="No">
+          Optional GraphQL operation name when making a request for multi-operation documents.
+        </property>
+      </properties>
 <note>
 When using Automatic Redirection, cookies are only sent for the initial URL.
 This can cause unexpected behaviour for web-sites that redirect to a local server.
@@ -542,6 +576,8 @@ the additional variables for rows four, five and six will be removed.
             <li>Autocommit(true)</li>
             <li>Edit - this should be a variable reference that evaluates to one of the above</li>
             </ul>
+            <note>The types <code>Commit</code>, <code>Rollback</code>, <code>Autocommit(false)</code> and <code>Autocommit(true)</code>
+              are special, as they are ignoring the given SQL statements and are changing the state of the connection, only.</note>
         </property>
         <property name="SQL Query" required="Yes">
         SQL query.
@@ -1119,6 +1155,13 @@ The JSR223 Sampler allows JSR223 script code to be used to perform a sample or s
 <note>
 If you don't want to generate a <apilink href="org/apache/jmeter/samplers/SampleResult.html">SampleResult</apilink> when this sampler is run, call the following method:
 <source>SampleResult.setIgnore();</source>
+This call will have the following impact:
+<ul>
+    <li>SampleResult will not be delivered to SampleListeners like View Results Tree, Summariser ...</li>
+    <li>SampleResult will not be evaluated in Assertions nor PostProcessors</li>
+    <li>SampleResult will be evaluated to computing last sample status (${JMeterThread.last_sample_ok}),
+    and ThreadGroup "Action to be taken after a Sampler error" (since JMeter 5.4)</li>
+</ul>
 </note>
 </p>
 <p>
@@ -1737,7 +1780,7 @@ Relative paths are resolved against the current directory.
 <br />Failing that, against the directory containing the test script (JMX file).
 </property>
 </properties>
-<note>You can pass mail related environment properties by adding to user.properties any of the properties described <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/pop3/package-summary.html">here</a>.</note>
+<note>You can pass mail related environment properties by adding to <code>user.properties</code> any of the properties described <a href="https://javaee.github.io/javamail/docs/api/com/sun/mail/pop3/package-summary.html">here</a>.</note>
 <p>
 Messages are stored as subsamples of the main sampler.
 Multipart message parts are stored as subsamples of the message.
@@ -2218,12 +2261,12 @@ Please refer to the <complink name="Constant Throughput Timer"/> for an element 
         <p>
         The best option (default one) is to check <code>Interpret Condition as Variable Expression?</code>, then in the condition field you have 2 options:
         <ul>
-            <li>Option 1 : Use a variable that contains <code>true</code> or <code>false</code>
+            <li>Option 1: Use a variable that contains <code>true</code> or <code>false</code>
             <note>If you want to test if last sample was successful, you can use <code>${JMeterThread.last_sample_ok}</code>
             <figure width="815" height="260" image="if_controller_variable.png">If Controller using Variable</figure>
             </note>
             </li>
-            <li>Option 2 : Use a function (<code>${__jexl3()}</code> is advised) to evaluate an expression that must return <code>true</code> or <code>false</code>
+            <li>Option 2: Use a function (<code>${__jexl3()}</code> is advised) to evaluate an expression that must return <code>true</code> or <code>false</code>
             <figure width="815" height="260" image="if_controller_expression.png">If Controller using expression</figure>
             </li>
         </ul>
@@ -2951,7 +2994,7 @@ It is important to choose the sampler names correctly to get the best results fr
 the Aggregate Report.
 </p>
 <p>
-Calculation of the <a href="glossary.html#Median">Median</a> and 90% Line (90<sup>th</sup> <a href="glossary.html#Percentile">percentile</a>) values requires additional memory.
+Calculation of the <a href="glossary.html#Median">Median</a> and 90&nnbsp;% Line (90<sup>th</sup> <a href="glossary.html#Percentile">percentile</a>) values requires additional memory.
 JMeter now combines samples with the same elapsed time, so far less memory is used.
 However, for samples that take more than a few seconds, the probability is that fewer samples will have identical times,
 in which case more memory will be needed.
@@ -2974,12 +3017,12 @@ This allows identical labels from different thread groups to be collated separat
 <li><code># Samples</code> - The number of samples with the same label</li>
 <li><code>Average</code> - The average time of a set of results</li>
 <li><code>Median</code> - The <a href="glossary.html#Median">median</a> is the time in the middle of a set of results.
-50% of the samples took no more than this time; the remainder took at least as long.</li>
-<li><code>90% Line</code> - 90% of the samples took no more than this time.
+50&nnbsp;% of the samples took no more than this time; the remainder took at least as long.</li>
+<li><code>90% Line</code> - 90&nnbsp;% of the samples took no more than this time.
 The remaining samples took at least as long as this. (90<sup>th</sup> <a href="glossary.html#Percentile">percentile</a>)</li>
-<li><code>95% Line</code> - 95% of the samples took no more than this time.
+<li><code>95% Line</code> - 95&nnbsp;% of the samples took no more than this time.
 The remaining samples took at least as long as this. (95<sup>th</sup> <a href="glossary.html#Percentile">percentile</a>)</li>
-<li><code>99% Line</code> - 99% of the samples took no more than this time.
+<li><code>99% Line</code> - 99&nnbsp;% of the samples took no more than this time.
 The remaining samples took at least as long as this. (99<sup>th</sup> <a href="glossary.html#Percentile">percentile</a>)</li>
 <li><code>Min</code> - The shortest time for the samples with the same label</li>
 <li>Max - The longest time for the samples with the same label</li>
@@ -3048,7 +3091,7 @@ the graph as a PNG file.</description>
         <br></br>Before display the graph, click on <code>Apply filter</code> button to refresh internal data.</li>
         </ul>
         </property>
-        <property name="Title" required="No">Define the graph's title on the head of chart. Empty value is the default value : "<code>Aggregate Graph</code>".
+        <property name="Title" required="No">Define the graph's title on the head of chart. Empty value is the default value: "<code>Aggregate Graph</code>".
         The button <code>Synchronize with name</code> define the title with the label of the listener. And define font settings for graph title</property>
         <property name="Graph size" required="No">Compute the graph size by  the width and height depending of the current JMeter's window size.
         Use <code>Width</code> and <code>Height</code> fields to define a custom size. The unit is pixel. </property>
@@ -3075,7 +3118,7 @@ If many samples exist for the same timestamp, the mean value is displayed.
         Before display the graph, click on <code>Apply interval</code> button to refresh internal data.</property>
         <property name="Sampler label selection" required="No">Filter by result label. A regular expression can be used, ex. <code>.*Transaction.*</code>.
         Before display the graph, click on <code>Apply filter</code> button to refresh internal data.</property>
-        <property name="Title" required="No">Define the graph's title on the head of chart. Empty value is the default value : "<code>Response Time Graph</code>".
+        <property name="Title" required="No">Define the graph's title on the head of chart. Empty value is the default value: "<code>Response Time Graph</code>".
         The button <code>Synchronize with name</code> define the title with the label of the listener. And define font settings for graph title</property>
         <property name="Line settings" required="Yes">Define the width of the line. Define the type of each value point. Choose <code>none</code> to have a line without mark</property>
         <property name="Graph size" required="No">Compute the graph size by  the width and height depending of the current JMeter's window size.
@@ -3307,6 +3350,8 @@ Generates a summary of the test run so far to the log file and/or
 standard output. Both running and differential totals are shown.
 Output is generated every <code>n</code> seconds (default 30 seconds) on the appropriate
 time boundary, so that multiple test runs on the same time will be synchronised.
+<note>Since a summary/differential line is written only if there are samples emitted, the interval
+for generation may not be respected if your test has no sample generated within the interval</note>
 See <code>jmeter.properties</code> file for the summariser configuration items:
 <source>
 # Define the following property to automatically start a summariser with that name
@@ -3402,8 +3447,7 @@ By default, a Graphite implementation is provided.
  <property name="Parameters" required="Yes">Parameters of the <code>BackendListenerClient</code> implementation.</property>
  </properties>
 
-
-     <p>The following parameters apply to the <apilink href="org/apache/jmeter/visualizers/backend/graphite/GraphiteBackendListenerClient.html">GraphiteBackendListenerClient</apilink> implementation:</p>
+    <p>The following parameters apply to the <apilink href="org/apache/jmeter/visualizers/backend/graphite/GraphiteBackendListenerClient.html">GraphiteBackendListenerClient</apilink> implementation:</p>
 
     <properties>
         <property name="graphiteMetricsSender" required="Yes"><code>org.apache.jmeter.visualizers.backend.graphite.TextGraphiteMetricsSender</code> or <code>org.apache.jmeter.visualizers.backend.graphite.PickleGraphiteMetricsSender</code></property>
@@ -3425,8 +3469,11 @@ By default, a Graphite implementation is provided.
     <figure width="1265" height="581" image="grafana_dashboard.png">Grafana dashboard</figure>
 
 
-    <p>Since JMeter 3.2, a new implementation has been added that allows writing directly in InfluxDB with a custom schema, it is called <code>InfluxdbBackendListenerClient</code>. Since JMeter 5.2, <code>InfluxdbBackendListenerClient</code> supports both InfluxDB v1 and v2.</p>
-    <p>The following parameters apply to the <apilink href="org/apache/jmeter/visualizers/backend/influxdb/InfluxdbBackendListenerClient.html">InfluxdbBackendListenerClient</apilink> implementation:</p>
+    <p>
+        Since JMeter 3.2, an implementation that allows writing directly in InfluxDB with a custom schema.
+        It is called <code>InfluxdbBackendListenerClient</code>. The following parameters apply to the
+        <apilink href="org/apache/jmeter/visualizers/backend/influxdb/InfluxdbBackendListenerClient.html">InfluxdbBackendListenerClient</apilink> implementation:
+    </p>
 
     <properties>
         <property name="influxdbMetricsSender" required="Yes"><code>org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender</code></property>
@@ -3447,6 +3494,31 @@ By default, a Graphite implementation is provided.
     <p>See also <a href="realtime-results.html" >Real-time results</a> and <a href="http://docs.grafana.org/reference/annotations/#influxdb-annotations">Influxdb annotations in Grafana</a> for more details.
         There is also a <a href="realtime-results.html#influxdb_v2">subsection on configuring the listener for InfluxDB v2</a>.
     </p>
+
+    <p>
+      Since JMeter 5.4, an implementation that writes all sample results to InfluxDB.
+      It is called <code>InfluxDBRawBackendListenerClient</code>.
+      It is worth noting that this will use more resources than the
+      <code>InfluxdbBackendListenerClient</code>, both by JMeter and InfluxDB
+      due to the increase in data and individual writes.
+      The following parameters apply to the
+      <a href="../api/org/apache/jmeter/visualizers/backend/influxdb/InfluxDBRawBackendListenerClient.html">InfluxDBRawBackendListenerClient</a>
+      implementation:
+    </p>
+
+    <properties>
+      <property name="influxdbMetricsSender" required="Yes"><code>org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender</code></property>
+      <property name="influxdbUrl" required="Yes">
+        Influx URL (e.g. http://influxHost:8086/write?db=jmeter or, for the cloud, https://eu-central-1-1.aws.cloud2.influxdata.com/api/v2/write?org=org-id&amp;bucket=jmeter)
+      </property>
+      <property name="influxdbToken" required="No">
+        InfluxDB 2 <a href="https://v2.docs.influxdata.com/v2.0/security/">authentication token</a> (e.g. HE9yIdAPzWJDspH_tCc2UvdKZpX==)
+      </property>
+      <property name="measurement" required="Yes">
+        Measurement as per <a href="https://docs.influxdata.com/influxdb/v1.7/write_protocols/line_protocol_reference/">Influx Line Protocol Reference</a>.
+        Defaults to "<code>jmeter</code>."
+      </property>
+    </properties>
 </component>
 
 <a href="#">^</a>
@@ -3462,7 +3534,7 @@ By default, a Graphite implementation is provided.
     <br></br>
 </description>
 
-<component name="CSV Data Set Config" index="&sect-num;.4.1"  width="433" height="281" screenshot="csvdatasetconfig.png">
+<component name="CSV Data Set Config" index="&sect-num;.4.1"  width="658" height="281" screenshot="csvdatasetconfig.png">
 <description>
     <p>
     CSV Data Set Config is used to read lines from a file, and split them into variables.
@@ -3891,10 +3963,15 @@ and send HTTP/HTTPS requests for all images, Java applets, JavaScript files, CSS
         </property>
         <property name="Use concurrent pool" required="No">Use a pool of concurrent connections to get embedded resources.</property>
         <property name="Size" required="No">Pool size for concurrent connections used to get embedded resources.</property>
-        <property name="Embedded URLs must match:" required="No">
+        <property name="URLs must match:" required="No">
         If present, this must be a regular expression that is used to match against any embedded URLs found.
-        So if you only want to download embedded resources from <code>http://example.com/</code>, use the expression:
-        <code>http://example\.com/.*</code>
+        So if you only want to download embedded resources from <code>http://example.invalid/</code>, use the expression:
+        <code>http://example\.invalid/.*</code>
+        </property>
+        <property name="URLs must not match:" required="No">
+        If present, this must be a regular expression that is used to filter out any embedded URLs found.
+        So if you don't want to download PNG or SVG files from any source, use the expression:
+        <code>.*\.(?i:svg|png)</code>
         </property>
 </properties>
 <note>
@@ -4376,10 +4453,10 @@ DB db = MongoDBHolder.getDBFromSource("value of property MongoDB Source",
         <property name="Keep Trying" required="No">
             If <code>true</code>, the driver will keep trying to connect to the same server in case that the socket cannot be established.<br/>
             There is maximum amount of time to keep retrying, which is 15s by default.<br/>This can be useful to avoid some exceptions being thrown when a server is down temporarily by blocking the operations.
-            <br/>It can also be useful to smooth the transition to a new master (so that a new master is elected within the retry time).<br/>
+            <br/>It can also be useful to smooth the transition to a new primary node (so that a new primary node is elected within the retry time).<br/>
             <note>Note that when using this flag
               <ul>
-                <li>for a replica set, the driver will try to connect to the old master for that time, instead of failing over to the new one right away </li>
+                <li>for a replica set, the driver will try to connect to the old primary node for that time, instead of failing over to the new one right away </li>
                 <li>this does not prevent exception from being thrown in read/write operations on the socket, which must be handled by application.</li>
               </ul>
               Even if this flag is false, the driver already has mechanisms to automatically recreate broken connections and retry the read operations.
@@ -4409,26 +4486,26 @@ DB db = MongoDBHolder.getDBFromSource("value of property MongoDB Source",
         For example if <code>connectionsPerHost</code> is <code>10</code> and <code>threadsAllowedToBlockForConnectionMultiplier</code> is <code>5</code>, then up to 50 threads can wait for a connection.<br/>
         Default is <code>5</code>.
         </property>
-        <property name="Write Concern : Safe" required="No">
+        <property name="Write Concern: Safe" required="No">
             If <code>true</code> the driver will use a <code>WriteConcern</code> of <code>WriteConcern.SAFE</code> for all operations.<br/>
             If <code>w</code>, <code>wtimeout</code>, <code>fsync</code> or <code>j</code> are specified, this setting is ignored.<br/>
             Default is <code>false</code>.
         </property>
-        <property name="Write Concern : Fsync" required="No">
+        <property name="Write Concern: Fsync" required="No">
             The <code>fsync</code> value of the global <code>WriteConcern</code>.<br/>
             Default is <code>false</code>.
         </property>
-        <property name="Write Concern : Wait for Journal" required="No">
+        <property name="Write Concern: Wait for Journal" required="No">
             The <code>j</code> value of the global <code>WriteConcern</code>.<br/>
             Default is <code>false</code>.
         </property>
-        <property name="Write Concern : Wait for servers" required="No">
+        <property name="Write Concern: Wait for servers" required="No">
             The <code>w</code> value of the global <code>WriteConcern</code>.<br/>Default is <code>0</code>.
         </property>
-        <property name="Write Concern : Wait timeout" required="No">
+        <property name="Write Concern: Wait timeout" required="No">
             The <code>wtimeout</code> value of the global <code>WriteConcern</code>.<br/>Default is <code>0</code>.
         </property>
-        <property name="Write Concern : Continue on error" required="No">
+        <property name="Write Concern: Continue on error" required="No">
             If batch inserts should continue after the first error
         </property>
     </properties>
@@ -4790,7 +4867,7 @@ The non-tolerant parser can be quite slow, as it may need to download the DTD et
 <b>NAMESPACES</b><br/>
 As a work-round for namespace limitations of the Xalan XPath parser (implementation on which JMeter is based) you need to:
 <ul>
-<li>provide a Properties file (if for example your file is named namespaces.properties) which contains mappings for the namespace prefixes:
+<li>provide a Properties file (if for example your file is named <code>namespaces.properties</code>) which contains mappings for the namespace prefixes:
 <source>
 prefix1=http\://foo.apache.org
 prefix2=http\://toto.apache.org
@@ -4817,7 +4894,7 @@ Some sample expressions:
 
 <properties>
 <property name="Namespaces aliases list" required="No">List of namespaces aliases you want to use to parse the document, one line per declaration.
-    You must specify them as follow : <code>prefix=namespace</code>. This implementation makes it easier to
+    You must specify them as follow: <code>prefix=namespace</code>. This implementation makes it easier to
     use namespaces than with the old XPathExtractor version.</property>
 <property name="XPath2 Assertion"    required="Yes">XPath to match in the document.</property>
 <property name="Invert assertion"    required="No">Will fail if xpath expression returns true or matches, succeed otherwise</property>
@@ -5117,7 +5194,7 @@ Note that the throughput value should not be changed too often during a test
 
 <h4>Ramp-up and startup spike</h4>
 <p>You might used "ramp-up" or similar approaches to avoid a spike at the test start. For instance, if you configure <complink name="Thread Group" /> to have
-    100 threads, and set <code>Ramp-up Period</code> to 0 (or to a small number), then all the threads would start at the same time, and it would produce an unwanted spike of the load. On top of that, if you set <code>Ramp-up Period</code> too high, it might result in "too few" threads being available at the very beginning to achieve
+    100 threads, and set <code>Ramp-up Period</code> to <code>0</code> (or to a small number), then all the threads would start at the same time, and it would produce an unwanted spike of the load. On top of that, if you set <code>Ramp-up Period</code> too high, it might result in "<em>too few</em>" threads being available at the very beginning to achieve
 the required load.</p>
 <p><code>Precise Throughput Timer</code> schedules executions in a random way, so it can be used to generate constant load, and it is recommended to set both
     <code>Ramp-up Period</code> and <code>Delay</code> to <code>0</code>.</p>
@@ -5930,20 +6007,20 @@ extracting the node as text or attribute value and store the result into the giv
     <property name="XPath Query" required="Yes">Element query in XPath 2.0 language. Can return more than one match.</property>
     <property name="Match No. (0 for Random)" required="No">If the XPath Path query leads to many results, you can choose which one(s) to extract as Variables:
     <ul>
-        <li><code>0</code> : means random (default value)</li>
+        <li><code>0</code>: means random (default value)</li>
         <li><code>-1</code> means extract all results, they will be named as <code><em>&lt;variable name&gt;</em>_N</code> (where <code>N</code> goes from 1 to Number of results)</li>
-        <li><code>X</code> : means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
+        <li><code>X</code>: means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
     </ul>
     </property>
     <property name="Default Value" required="yes">Default value returned when no match found.
     It is also returned if the node has no value and the fragment option is not selected.</property>
     <property name="Namespaces aliases list" required="No">List of namespaces aliases you want to use to parse the document, one line per declaration.
-    You must specify them as follow : <code>prefix=namespace</code>. This implementation makes it easier to
+    You must specify them as follow: <code>prefix=namespace</code>. This implementation makes it easier to
     use namespaces than with the old XPathExtractor version.</property>
    </properties>
    <p>To allow for use in a <complink name="ForEach Controller"/>, it works exactly the same as the above XPath Extractor</p>
    <p>XPath2 Extractor provides some interestings tools such as an improved syntax and much more functions than in it's first version.</p>
-   <p>Here are some exemples : </p>
+   <p>Here are some exemples: </p>
    <dl>
    <dt><code>abs(/book/page[2])</code></dt>
      <dd>extracts 2<sup>nd</sup> absolute value of the page from a book</dd>
@@ -6001,9 +6078,9 @@ extracting the node as text or attribute value and store the result into the giv
     <property name="XPath Query" required="Yes">Element query in XPath language. Can return more than one match.</property>
     <property name="Match No. (0 for Random)" required="No">If the XPath Path query leads to many results, you can choose which one(s) to extract as Variables:
     <ul>
-        <li><code>0</code> : means random</li>
+        <li><code>0</code>: means random</li>
         <li><code>-1</code> means extract all results (default value), they will be named as <code><em>&lt;variable name&gt;</em>_N</code> (where <code>N</code> goes from 1 to Number of results)</li>
-        <li><code>X</code> : means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
+        <li><code>X</code>: means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
     </ul>
     </property>
     <property name="Default Value" required="">Default value returned when no match found.
@@ -6046,7 +6123,7 @@ extracting the node as text or attribute value and store the result into the giv
 <b>NAMESPACES</b><br/>
 As a work-round for namespace limitations of the Xalan XPath parser (implementation on which JMeter is based) you need to:
 <ul>
-<li>provide a Properties file (if for example your file is named namespaces.properties) which contains mappings for the namespace prefixes:
+<li>provide a Properties file (if for example your file is named <code>namespaces.properties</code>) which contains mappings for the namespace prefixes:
 <source>
 prefix1=http\://foo.apache.org
 prefix2=http\://toto.apache.org
@@ -6089,9 +6166,9 @@ where "<code>uri-for-namespace</code>" is the uri for the "<code>mynamespace</co
     <property name="JMESPath expressions" required="Yes">Element query in JMESPath query language. Can return the matched result.</property>
     <property name="Match No. (0 for Random)" required="No">If the JMESPath query leads to many results, you can choose which one(s) to extract as Variables:
     <ul>
-        <li><code>0</code> : means random</li>
+        <li><code>0</code>: means random</li>
         <li><code>-1</code> means extract all results (default value), they will be named as <code><em>&lt;variable name&gt;</em>_N</code> (where <code>N</code> goes from 1 to Number of results)</li>
-        <li><code>X</code> : means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
+        <li><code>X</code>: means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
     </ul>
     </property>
     <property name="Default Value" required="">Default value returned when no match found.
@@ -6245,9 +6322,9 @@ It will allow you to extract in a very easy way text content, see <a href="https
     <property name="Default Values" required="No">Semi-colon separated default values if JSON-PATH expressions do not return any result(must match number of variables)</property>
     <property name="Match No. (0 for Random)" required="No">If the JSON Path query leads to many results, you can choose which one(s) to extract as Variables:
     <ul>
-        <li><code>0</code> : means random (Default Value)</li>
+        <li><code>0</code>: means random (Default Value)</li>
         <li><code>-1</code> means extract all results, they will be named as <code><em>&lt;variable name&gt;</em>_N</code> (where <code>N</code> goes from 1 to Number of results)</li>
-        <li><code>X</code> : means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
+        <li><code>X</code>: means extract the X<sup>th</sup> result. If this X<sup>th</sup> is greater than number of matches, then nothing is returned. Default value will be used</li>
     </ul>
     </property>
     <property name="Compute concatenation var" required="No">If many results are found, plugin will concatenate them using ‘<code>,</code>’ separator and store it in a var named <code><em>&lt;variable name&gt;</em>_ALL</code></property>
@@ -6402,7 +6479,7 @@ See <a href="get-started.html#classpath">JMeter's Classpath</a> and
 </description>
 </component>
 
-<component name="Thread Group" index="&sect-num;.9.2"  width="911" height="390" screenshot="threadgroup.png">
+<component name="Thread Group" index="&sect-num;.9.2"  width="911" height="662" screenshot="threadgroup.png">
 <description>
 <p>A Thread Group defines a pool of users that will execute a particular test case against your server.  In the Thread Group GUI, you can control the number of users simulated (number of threads), the ramp up time (how long it takes to start all the threads), the number of times to perform the test, and optionally, a start and stop time for the test.</p>
 <p>
@@ -6418,22 +6495,22 @@ JMeter does not interrupt samplers which are waiting for a response, so the end 
 Since JMeter 3.0, you can run a selection of Thread Group by selecting them and right clicking. A popup menu will appear:
 <figure width="461" height="818" image="threadgroup-popup-menu.png">Popup menu to start a selection of Thread Groups</figure>
 
-<br/>Notice you have 3 options to run the selection of Thread Groups:
-<ul>
-<li>Start : Start the selected thread groups only</li>
-<li>Start no pauses : Start the selected thread groups only but without running the timers</li>
-<li>Validate : Start the selected thread groups only using validation mode. Per default this runs the Thread Group in validation mode (see below)</li>
-</ul>
+<br/>Notice you have three options to run the selection of Thread Groups:
+<dl>
+<dt><code>Start</code></dt><dd>Start the selected thread groups only</dd>
+<dt><code>Start no pauses</code></dt><dd>Start the selected thread groups only but without running the timers</dd>
+<dt><code>Validate</code></dt><dd>Start the selected thread groups only using validation mode. Per default this runs the Thread Group in validation mode (see below)</dd>
+</dl>
 
 <b>Validation Mode:</b><br></br>
-This mode enables rapid validation of a Thread Group by running it with 1 thread, 1 iteration, no timers and no <code>Startup delay</code> set to 0.
-Behaviour can be modified with some properties by setting in user.properties:
-<ul>
-<li><code>testplan_validation.nb_threads_per_thread_group</code> : Number of threads to use to validate a Thread Group, by default 1</li>
-<li><code>testplan_validation.ignore_timers</code> : Ignore timers when validating the thread group of plan, by default 1</li>
-<li><code>testplan_validation.number_iterations</code> : Number of iterations to use to validate a Thread Group</li>
-<li><code>testplan_validation.tpc_force_100_pct</code> : Whether to force Throughput Controller in percentage mode to run as if percentage was 100%. Defaults to false</li>
-</ul>
+This mode enables rapid validation of a Thread Group by running it with one thread, one iteration, no timers and no <code>Startup delay</code> set to <code>0</code>.
+Behaviour can be modified with some properties by setting in <code>user.properties</code>:
+<dl>
+<dt><code>testplan_validation.nb_threads_per_thread_group</code></dt><dd>Number of threads to use to validate a Thread Group, by default <code>1</code></dd>
+<dt><code>testplan_validation.ignore_timers</code></dt><dd>Ignore timers when validating the thread group of plan, by default <code>1</code></dd>
+<dt><code>testplan_validation.number_iterations</code></dt><dd>Number of iterations to use to validate a Thread Group</dd>
+<dt><code>testplan_validation.tpc_force_100_pct</code></dt><dd>Whether to force Throughput Controller in percentage mode to run as if percentage was 100&nnbsp;%. Defaults to <code>false</code></dd>
+</dl>
 </p>
 
 <properties>
@@ -6450,7 +6527,19 @@ Behaviour can be modified with some properties by setting in user.properties:
         </ul>
         </property>
         <property name="Number of Threads" required="Yes">Number of users to simulate.</property>
-        <property name="Ramp-up Period" required="Yes">How long JMeter should take to get all the threads started.  If there are 10 threads and a ramp-up time of 100 seconds, then each thread will begin 10 seconds after the previous thread started, for a total time of 100 seconds to get the test fully up to speed.</property>
+        <property name="Ramp-up Period" required="Yes">How long JMeter should take to get all the threads started.
+            If there are 10 threads and a ramp-up time of 100 seconds, then each thread will begin 10 seconds after
+            the previous thread started, for a total time of 100 seconds to get the test fully up to speed.
+            <note>The first thread will always start directly, so if you configured <strong>one</strong> thread,
+                the ramp-up time is effectively <strong>zero</strong>. For the same reason, the tenth thread in
+                the above example will actually be started after 90 seconds and not 100 seconds.</note>
+        </property>
+        <property name="Same user on each iteration" required="Yes">
+            If selected, cookie and cache data from the first sampler response are used in subsequent requests (requires a global Cookie and Cache Manager respectively).
+            <br></br>
+            If not selected, cookie and cache data from the first sampler response are not used in subsequent requests.
+            <note>If not selected, a new connection will be opened between iterations which will result in increased response times and consume more resources (memory and cpu).</note>
+        </property>
         <property name="Loop Count" required="Yes, unless Infinite is selected">Number of times to perform the test case.  Alternatively, "<code>infinite</code>" can be selected causing the test to run until manually stopped or end of the thread lifetime is reached.</property>
         <property name="Delay Thread creation until needed" required="Yes">
         If selected, threads are created only when the appropriate proportion of the ramp-up time has elapsed.
@@ -6524,7 +6613,7 @@ Behaviour can be modified with some properties by setting in user.properties:
 </p>
 </component>
 
-<component name="HTTP(S) Test Script Recorder" was="HTTP Proxy Server" index="&sect-num;.9.5"  width="1052" height="694" screenshot="proxy_control.png">
+<component name="HTTP(S) Test Script Recorder" was="HTTP Proxy Server" index="&sect-num;.9.5"  width="983" height="702" screenshot="proxy_control.png">
 <description><p>The HTTP(S) Test Script Recorder allows JMeter to intercept and record your actions while you browse your web application
 with your normal browser.  JMeter will create test sample objects and store them
 directly into your test plan as you go (so you can view samples interactively while you make them).<br/>
@@ -6600,9 +6689,9 @@ As a consequence:
 <li>The browser should display a dialogue asking if you want to accept the certificate or not. For example:
 <source>
 1) The server's name "<code>www.example.com</code>" does not match the certificate's name
-   "<code>JMeter Proxy (DO NOT TRUST)</code>". Somebody may be trying to eavesdrop on you.
-2) The certificate for "<code>JMeter Proxy (DO NOT TRUST)</code>" is signed by the unknown Certificate Authority
-   "<code>JMeter Proxy (DO NOT TRUST)</code>". It is not possible to verify that this is a valid certificate.
+   "<code>_ JMeter Root CA for recording (INSTALL ONLY IF IT S YOURS)</code>". Somebody may be trying to eavesdrop on you.
+2) The certificate for "<code>_ JMeter Root CA for recording (INSTALL ONLY IF IT S YOURS)</code>" is signed by the unknown Certificate Authority
+   "<code>_ JMeter Root CA for recording (INSTALL ONLY IF IT S YOURS)</code>". It is not possible to verify that this is a valid certificate.
 </source>
 You will need to accept the certificate in order to allow the JMeter Proxy to intercept the SSL traffic in order to
 record it.
@@ -6728,6 +6817,9 @@ Both Chrome and Internet Explorer use the same trust store for certificates.
         <property name="Add Assertions" required="Yes">Add a blank assertion to each sampler?</property>
         <property name="Regex Matching" required="Yes">Use Regex Matching when replacing variables? If checked replacement will use word boundaries, i.e. it will only replace word matching values of variable, not part of a word. A word boundary follows Perl5 definition and is equivalent to <code>\b</code>. More information below in the paragraph about "<code>User Defined Variable replacement</code>".</property>
         <property name="Prefix/Transaction name" required="No">Add a prefix to sampler name during recording (Prefix mode). Or replace sampler name by user chosen name (Transaction name)</property>
+        <property name="Naming scheme" required="No">Select the naming scheme for sampler names during recording. Default is <code>Transaction name</code></property>
+        <property name="Naming format" required="No">If <code>Use format string</code> is selected as naming scheme, a freestyle format can be given. Placeholders for the transaction name, path and counter can be given by <code>#{name}</code>, <code>#{path}</code> and <code>#{counter}</code>. A simple format could be "<code>#{name}-#{counter}</code>", which would be equivalent to the numbered default naming scheme. For more complex formatting Java formatting for MessageFormat can be used, as in "<code>#{counter,number,000}: #{name}-#{path}</code>", which would print the counter filled with up to three zeroes. Default is an empty string.</property>
+        <property name="Counter start value" required="No">Can be used to reset the counter to a given value. Note, that the next sample will first increment and then use the value. If the first sampler should start with <code>1</code>, reset the counter to <code>0</code>.</property>
         <property name="Create new transaction after request (ms)">Inactivity time between two requests needed to consider them in two separate groups.</property>
         <property name="Type" required="Yes">Which type of sampler to generate (the HTTPClient default or Java)</property>
         <property name="Redirect Automatically" required="Yes">Set Redirect Automatically in the generated samplers?</property>
@@ -6982,18 +7074,18 @@ Note that you can get more control over the responses by adding an HTTP Header M
         <property name="X-ResponseStatus" required="No">Response status, see <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">HTTP Status responses</a>, example 200 OK, 500 Internal Server Error, &hellip;.</property>
         <property name="X-ResponseLength" required="No">Size of response, this trims the response to the requested size if that is less than the total size</property>
         <property name="X-SetHeaders" required="No">Pipe separated list of headers, example:<br/>
-        <code>headerA=valueA|headerB=valueB</code> would set <code>headerA</code> to <code>valueA</code> and <code>headerB</code> to <code>valueB</code>.
+        <code>headerA: valueA|headerB: valueB</code> would set <code>headerA</code> to <code>valueA</code> and <code>headerB</code> to <code>valueB</code>.
         </property>
 </properties>
 <p>
 You can also use the following query parameters:
 </p>
 <properties>
-    <property name="redirect" required="No">Generates a 302 (Temporary Redirect) with the provided location.
+    <property name="redirect" required="No">Generates a 302 (Temporary Redirect) with the provided location,
     e.g. <code>?redirect=/path</code>
     </property>
-    <property name="status" required="No">Overrides the default status return. e.g. <code>?status=404 Not Found</code></property>
-    <property name="v" required="No">Verbose flag, writes some details to standard output. e.g. first line and redirect location if specified</property>
+    <property name="status" required="No">Overrides the default status return, e.g. <code>?status=404 Not Found</code></property>
+    <property name="v" required="No">Verbose flag, writes some details to standard output, e.g. first line and redirect location if specified</property>
 </properties>
 </component>
 
